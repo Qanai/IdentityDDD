@@ -1,10 +1,11 @@
 ﻿using IdentityDDD.Domain.Repositories;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data.Entity;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -117,37 +118,97 @@ namespace IdentityDDD.Data.EntityFramework.Repositories
 
         public T GetSingle(Expression<Func<T, bool>> where, params Expression<Func<T, object>>[] navigationProperties)
         {
-            throw new NotImplementedException();
+            T item = null;
+
+            item = GetQuery(navigationProperties)
+                .FirstOrDefault(where);
+
+            return item;
         }
 
-        public Task<T> GetSingleAsync(Expression<Func<T, bool>> where, params Expression<Func<T, object>>[] navigationProperties)
+        public async Task<T> GetSingleAsync(Expression<Func<T, bool>> where, params Expression<Func<T, object>>[] navigationProperties)
         {
-            throw new NotImplementedException();
+            T item = null;
+
+            item = await GetQuery(navigationProperties)
+                .FirstOrDefaultAsync(where);
+
+            return item;
         }
 
-        public Task<T> GetSingleAsync(CancellationToken cancellationToken, Expression<Func<T, bool>> where, params Expression<Func<T, object>>[] navigationProperties)
+        public async Task<T> GetSingleAsync(CancellationToken cancellationToken, Expression<Func<T, bool>> where, params Expression<Func<T, object>>[] navigationProperties)
         {
-            throw new NotImplementedException();
+            T item = null;
+
+            item = await GetQuery(navigationProperties)
+                .FirstOrDefaultAsync(where, cancellationToken);
+
+            return item;
         }
 
         public void Add(params T[] items)
         {
-            throw new NotImplementedException();
+            foreach (T item in items)
+            {
+                context.Entry(item).State = EntityState.Added;
+            }
         }
 
         public void Update(params T[] items)
         {
-            throw new NotImplementedException();
+            foreach (var item in items)
+            {
+                context.Entry(item).State = EntityState.Modified;
+            }
         }
 
         public void Remove(params T[] items)
         {
-            throw new NotImplementedException();
+            foreach (var item in items)
+            {
+                context.Entry(item).State = EntityState.Deleted;
+            }
         }
 
         public void UpdateRelated(Expression<Func<T, bool>> where, IEnumerable<object> updatedSet, string relatedPropertyName, string relatedPropertyKeyName)
         {
-            throw new NotImplementedException();
+            context.Database.Log = message => Trace.Write(message);
+
+            // Get the generic type of the set
+            var type = updatedSet.First().GetType();
+
+            var items = context.Set<T>()
+                .Include(relatedPropertyName)
+                .ToList()
+                .Where(where.Compile());
+
+            foreach (var item in items)
+            {
+                var values = CreateList(type);
+
+                var qry = updatedSet
+                        .Select(obj => (int)(obj
+                        .GetType()
+                        .GetProperty(relatedPropertyKeyName)
+                        .GetValue(obj, null)));
+
+                var relatedEntries = qry
+                    .Select(val => context.Set(type).Find(val));
+
+                foreach (var entry in relatedEntries)
+                {
+                    //await context.Entry(entry).ReloadAsync();
+                    values.Add(entry);
+                }
+
+                context.Entry(item).Collection(relatedPropertyName).CurrentValue = values;
+            }
+        }
+
+        private IList CreateList(Type type)
+        {
+            var genericList = typeof(List<>).MakeGenericType(type);
+            return (IList)Activator.CreateInstance(genericList);
         }
 
         private IQueryable<T> GetQuery(System.Linq.Expressions.Expression<Func<T, object>>[] navigationProperties)
