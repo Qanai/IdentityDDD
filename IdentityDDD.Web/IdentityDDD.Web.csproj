@@ -164,6 +164,10 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Identity\IdentityRole.cs" />
+    <Compile Include="Identity\IdentityUser.cs" />
+    <Compile Include="Identity\RoleStore.cs" />
+    <Compile Include="Identity\UserStore.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\ManageViewModels.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -241,11 +245,21 @@
     <Content Include="Views\Shared\Lockout.cshtml" />
     <Content Include="Views\Shared\_LoginPartial.cshtml" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\IdentityDDD.Data.EntityFramework\IdentityDDD.Data.EntityFramework.csproj">
+      <Project>{c9cfeef3-e4f2-4ab8-91b3-4641b5dc9b6e}</Project>
+      <Name>IdentityDDD.Data.EntityFramework</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\IdentityDDD.Domain\IdentityDDD.Domain.csproj">
+      <Project>{04ba5068-9f00-49b9-ac42-cf6305527e1b}</Project>
+      <Name>IdentityDDD.Domain</Name>
+    </ProjectReference>
+  </ItemGroup>
   <ItemGroup>
     <Content Include="packages.config" />
     <None Include="Project_Readme.html" />
   </ItemGroup>
+  <ItemGroup />
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
