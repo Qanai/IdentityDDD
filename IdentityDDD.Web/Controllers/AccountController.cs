@@ -35,6 +35,11 @@ namespace IdentityDDD.Web.Controllers
         public AccountController(UserManager<IdentityUser, Guid> usrMngr)
         {
             userManager = usrMngr;
+            userManager.UserValidator = new UserValidator<IdentityUser, Guid>(userManager)
+            {
+                AllowOnlyAlphanumericUserNames = false,
+                RequireUniqueEmail = true
+            };
         }
 
         //public ApplicationSignInManager SignInManager
@@ -117,11 +122,12 @@ namespace IdentityDDD.Web.Controllers
         public async Task<ActionResult> VerifyCode(string provider, string returnUrl, bool rememberMe)
         {
             // Require that the user has already logged in via username/password or external login
-            if (!await SignInManager.HasBeenVerifiedAsync())
-            {
-                return View("Error");
-            }
-            return View(new VerifyCodeViewModel { Provider = provider, ReturnUrl = returnUrl, RememberMe = rememberMe });
+            //if (!await SignInManager.HasBeenVerifiedAsync())
+            //{
+            //    return View("Error");
+            //}
+            //return View(new VerifyCodeViewModel { Provider = provider, ReturnUrl = returnUrl, RememberMe = rememberMe });
+            return View("Error");
         }
 
         //
@@ -140,18 +146,22 @@ namespace IdentityDDD.Web.Controllers
             // If a user enters incorrect codes for a specified amount of time then the user account 
             // will be locked out for a specified amount of time. 
             // You can configure the account lockout settings in IdentityConfig
-            var result = await SignInManager.TwoFactorSignInAsync(model.Provider, model.Code, isPersistent: model.RememberMe, rememberBrowser: model.RememberBrowser);
-            switch (result)
-            {
-                case SignInStatus.Success:
-                    return RedirectToLocal(model.ReturnUrl);
-                case SignInStatus.LockedOut:
-                    return View("Lockout");
-                case SignInStatus.Failure:
-                default:
-                    ModelState.AddModelError("", "Invalid code.");
-                    return View(model);
-            }
+            //var result = await SignInManager.TwoFactorSignInAsync(model.Provider, model.Code, isPersistent: model.RememberMe, rememberBrowser: model.RememberBrowser);
+            //switch (result)
+            //{
+            //    case SignInStatus.Success:
+            //        return RedirectToLocal(model.ReturnUrl);
+            //    case SignInStatus.LockedOut:
+            //        return View("Lockout");
+            //    case SignInStatus.Failure:
+            //    default:
+            //        ModelState.AddModelError("", "Invalid code.");
+            //        return View(model);
+            //}
+
+            
+
+            return View("Error");
         }
 
         //
@@ -184,7 +194,7 @@ namespace IdentityDDD.Web.Controllers
                 //    // await UserManager.SendEmailAsync(user.Id, "Confirm your account", "Please confirm your account by clicking <a href=\"" + callbackUrl + "\">here</a>");
 
                 //    return RedirectToAction("Index", "Home");
-
+                    
                     await SignInAsync(user, isPersistent: false);
                     RedirectToAction("Home", "Index");
                 }
@@ -246,7 +256,7 @@ namespace IdentityDDD.Web.Controllers
             {
                 if (ModelState.IsValid)
                 {
-                    IdentityResult result = await _userManager.ChangePasswordAsync(getGuid(User.Identity.GetUserId()), model.OldPassword, model.NewPassword);
+                    IdentityResult result = await userManager.ChangePasswordAsync(GetUserGuid(User.Identity.GetUserId()), model.OldPassword, model.NewPassword);
                     if (result.Succeeded)
                     {
                         return RedirectToAction("Manage", new { Message = ManageMessageId.ChangePasswordSuccess });
@@ -268,7 +278,7 @@ namespace IdentityDDD.Web.Controllers
 
                 if (ModelState.IsValid)
                 {
-                    IdentityResult result = await _userManager.AddPasswordAsync(getGuid(User.Identity.GetUserId()), model.NewPassword);
+                    IdentityResult result = await userManager.AddPasswordAsync(GetUserGuid(User.Identity.GetUserId()), model.NewPassword);
                     if (result.Succeeded)
                     {
                         return RedirectToAction("Manage", new { Message = ManageMessageId.SetPasswordSuccess });
@@ -294,7 +304,7 @@ namespace IdentityDDD.Web.Controllers
             {
                 return View("Error");
             }
-            var result = await userManager.ConfirmEmailAsync(userId, code);
+            var result = await userManager.ConfirmEmailAsync(GetUserGuid(userId), code);
             return View(result.Succeeded ? "ConfirmEmail" : "Error");
         }
 
@@ -400,7 +410,8 @@ namespace IdentityDDD.Web.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> SendCode(string returnUrl, bool rememberMe)
         {
-            var userId = await SignInManager.GetVerifiedUserIdAsync();
+            //var userId = await SignInManager.GetVerifiedUserIdAsync();
+            var userId = GetUserGuid(User.Identity.GetUserId());
             if (userId == null)
             {
                 return View("Error");
@@ -423,10 +434,13 @@ namespace IdentityDDD.Web.Controllers
             }
 
             // Generate the token and send it
-            if (!await SignInManager.SendTwoFactorCodeAsync(model.SelectedProvider))
-            {
-                return View("Error");
-            }
+            //if (!await SignInManager.SendTwoFactorCodeAsync(model.SelectedProvider))
+            //{
+            //    return View("Error");
+            //}
+            
+            //var user = await userManager.FindAsync(model.SelectedProvider)
+            
             return RedirectToAction("VerifyCode", new { Provider = model.SelectedProvider, ReturnUrl = model.ReturnUrl, RememberMe = model.RememberMe });
         }
 
@@ -441,24 +455,66 @@ namespace IdentityDDD.Web.Controllers
                 return RedirectToAction("Login");
             }
 
-            // Sign in the user with this external login provider if the user already has a login
-            var result = await SignInManager.ExternalSignInAsync(loginInfo, isPersistent: false);
-            switch (result)
+            //// Sign in the user with this external login provider if the user already has a login
+            //var result = await SignInManager.ExternalSignInAsync(loginInfo, isPersistent: false);
+            //switch (result)
+            //{
+            //    case SignInStatus.Success:
+            //        return RedirectToLocal(returnUrl);
+            //    case SignInStatus.LockedOut:
+            //        return View("Lockout");
+            //    case SignInStatus.RequiresVerification:
+            //        return RedirectToAction("SendCode", new { ReturnUrl = returnUrl, RememberMe = false });
+            //    case SignInStatus.Failure:
+            //    default:
+            //        // If the user does not have an account, then prompt the user to create an account
+            //        ViewBag.ReturnUrl = returnUrl;
+            //        ViewBag.LoginProvider = loginInfo.Login.LoginProvider;
+            //        return View("ExternalLoginConfirmation", new ExternalLoginConfirmationViewModel { Email = loginInfo.Email });
+            //}
+
+            var user = await userManager.FindAsync(loginInfo.Login);
+            if (user != null)
             {
-                case SignInStatus.Success:
-                    return RedirectToLocal(returnUrl);
-                case SignInStatus.LockedOut:
-                    return View("Lockout");
-                case SignInStatus.RequiresVerification:
-                    return RedirectToAction("SendCode", new { ReturnUrl = returnUrl, RememberMe = false });
-                case SignInStatus.Failure:
-                default:
-                    // If the user does not have an account, then prompt the user to create an account
-                    ViewBag.ReturnUrl = returnUrl;
-                    ViewBag.LoginProvider = loginInfo.Login.LoginProvider;
-                    return View("ExternalLoginConfirmation", new ExternalLoginConfirmationViewModel { Email = loginInfo.Email });
+                await SignInAsync(user, false);
+                return RedirectToLocal(returnUrl);
+            }
+            else
+            {
+                // If the user does not have an account, then prompt the user to create an account
+                ViewBag.ReturnUrl = returnUrl;
+                ViewBag.LoginProvider = loginInfo.Login.LoginProvider;
+                return View("ExternalLoginConfirmation", new ExternalLoginConfirmationViewModel { Email = loginInfo.Email });
             }
         }
+
+        //
+        // POST: /Account/LinkLogin
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult LinkLogin(string provider)
+        {
+            // Request a redirect to the external login provider to link a login for the current user
+            return new ChallengeResult(provider, Url.Action("LinkLoginCallback", "Account"), User.Identity.GetUserId());
+        }
+
+        //
+        // GET: /Account/LinkLoginCallback
+        public async Task<ActionResult> LinkLoginCallback()
+        {
+            var loginInfo = await AuthenticationManager.GetExternalLoginInfoAsync(XsrfKey, User.Identity.GetUserId());
+            if (loginInfo == null)
+            {
+                return RedirectToAction("Manage", new { Message = ManageMessageId.Error });
+            }
+            var result = await userManager.AddLoginAsync(GetUserGuid(User.Identity.GetUserId()), loginInfo.Login);
+            if (result.Succeeded)
+            {
+                return RedirectToAction("Manage");
+            }
+            return RedirectToAction("Manage", new { Message = ManageMessageId.Error });
+        }
+
 
         //
         // POST: /Account/ExternalLoginConfirmation
@@ -487,7 +543,8 @@ namespace IdentityDDD.Web.Controllers
                     result = await userManager.AddLoginAsync(user.Id, info.Login);
                     if (result.Succeeded)
                     {
-                        await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                        //await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                        await SignInAsync(user, isPersistent: false);
                         return RedirectToLocal(returnUrl);
                     }
                 }
@@ -518,19 +575,24 @@ namespace IdentityDDD.Web.Controllers
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
-            {
-                if (_UserManager != null)
-                {
-                    _UserManager.Dispose();
-                    _UserManager = null;
-                }
+            //if (disposing)
+            //{
+            //    if (_UserManager != null)
+            //    {
+            //        _UserManager.Dispose();
+            //        _UserManager = null;
+            //    }
 
-                if (_signInManager != null)
-                {
-                    _signInManager.Dispose();
-                    _signInManager = null;
-                }
+            //    if (_signInManager != null)
+            //    {
+            //        _signInManager.Dispose();
+            //        _signInManager = null;
+            //    }
+            //}
+
+            if (disposing && (userManager != null))
+            {
+                userManager.Dispose();
             }
 
             base.Dispose(disposing);
@@ -552,9 +614,7 @@ namespace IdentityDDD.Web.Controllers
         {
             AuthenticationManager.SignOut(DefaultAuthenticationTypes.ExternalCookie);
             var identity = await userManager.CreateIdentityAsync(user, DefaultAuthenticationTypes.ApplicationCookie);
-            var props = new AuthenticationProperties() { IsPersistent = isPersistent };
-            var ids = new List<ClaimsIdentity> { identity.Result };
-            AuthenticationManager.SignIn(props, ids.ToArray());            
+            AuthenticationManager.SignIn(new AuthenticationProperties() { IsPersistent = isPersistent }, identity);
         }
 
         private void AddErrors(IdentityResult result)

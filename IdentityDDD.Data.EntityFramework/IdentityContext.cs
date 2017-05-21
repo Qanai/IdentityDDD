@@ -14,6 +14,8 @@ namespace IdentityDDD.Data.EntityFramework
         internal IdentityContext(string nameOrConnectionString)
             : base(nameOrConnectionString)
         {
+            var ensureDLLIsCopied =
+                System.Data.Entity.SqlServer.SqlProviderServices.Instance;   
         }
 
         internal IDbSet<User> Users { get; set; }

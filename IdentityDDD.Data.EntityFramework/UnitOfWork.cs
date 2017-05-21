@@ -1,8 +1,6 @@
 ﻿using IdentityDDD.Data.EntityFramework.Repositories;
 using IdentityDDD.Domain;
 using IdentityDDD.Domain.Repositories;
-using Ninject;
-using Ninject.Parameters;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +19,11 @@ namespace IdentityDDD.Data.EntityFramework
         private IRoleRepository roleRepository;
         private IUserRepository userRepository;
         #endregion
+
+        public UnitOfWork(string nameOrConnectionString)
+        {
+            context = new IdentityContext(nameOrConnectionString);
+        }
 
         //public T GetRepository<T>() where T : class
         //{
