@@ -21,6 +21,7 @@ namespace IdentityDDD.Web.Controllers
         //private ApplicationUserManager _UserManager;
 
         private readonly UserManager<IdentityUser, Guid> userManager;
+        private readonly RoleManager<IdentityRole, Guid> roleManager;
 
         //public AccountController(UserManager<IdentityUser, Guid> usrManager)
         //{            
@@ -32,14 +33,46 @@ namespace IdentityDDD.Web.Controllers
         //    SignInManager = signInManager;
         //}
 
-        public AccountController(UserManager<IdentityUser, Guid> usrMngr)
+        public AccountController(UserManager<IdentityUser, Guid> usrMngr,
+            RoleManager<IdentityRole, Guid> rolMngr)
         {
             userManager = usrMngr;
+            roleManager = rolMngr;
+
+            var r = SetManagers();
+        }
+
+        private async Task SetManagers()
+        {
             userManager.UserValidator = new UserValidator<IdentityUser, Guid>(userManager)
             {
                 AllowOnlyAlphanumericUserNames = false,
                 RequireUniqueEmail = true
             };
+
+            await SetInitialData();
+        }
+
+        private async Task SetInitialData()
+        {
+            string ar = "Admin";
+            if (!roleManager.RoleExists(ar))
+            {
+                var adminRole = new IdentityRole(ar);
+                await roleManager.CreateAsync(adminRole);
+            }
+
+            var adminUser = userManager.Users.FirstOrDefault(u => userManager.IsInRole(u.Id, ar));
+            if (adminUser == null)
+            {
+                string ad = "eliyahushli@gmail.com";
+                adminUser = new IdentityUser { UserName = ad, Email = ad };
+                var res = await userManager.CreateAsync(adminUser);
+                if (res.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(adminUser.Id, ar);
+                }
+            }
         }
 
         //public ApplicationSignInManager SignInManager
@@ -159,7 +192,7 @@ namespace IdentityDDD.Web.Controllers
             //        return View(model);
             //}
 
-            
+
 
             return View("Error");
         }
@@ -185,16 +218,16 @@ namespace IdentityDDD.Web.Controllers
                 var result = await userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
-                //    await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
+                    //    await SignInManager.SignInAsync(user, isPersistent: false, rememberBrowser: false);
 
-                //    // For more information on how to enable account confirmation and password reset please visit http://go.microsoft.com/fwlink/?LinkID=320771
-                //    // Send an email with this link
-                //    // string code = await UserManager.GenerateEmailConfirmationTokenAsync(user.Id);
-                //    // var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);
-                //    // await UserManager.SendEmailAsync(user.Id, "Confirm your account", "Please confirm your account by clicking <a href=\"" + callbackUrl + "\">here</a>");
+                    //    // For more information on how to enable account confirmation and password reset please visit http://go.microsoft.com/fwlink/?LinkID=320771
+                    //    // Send an email with this link
+                    //    // string code = await UserManager.GenerateEmailConfirmationTokenAsync(user.Id);
+                    //    // var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);
+                    //    // await UserManager.SendEmailAsync(user.Id, "Confirm your account", "Please confirm your account by clicking <a href=\"" + callbackUrl + "\">here</a>");
 
-                //    return RedirectToAction("Index", "Home");
-                    
+                    //    return RedirectToAction("Index", "Home");
+
                     await SignInAsync(user, isPersistent: false);
                     RedirectToAction("Home", "Index");
                 }
@@ -438,9 +471,9 @@ namespace IdentityDDD.Web.Controllers
             //{
             //    return View("Error");
             //}
-            
+
             //var user = await userManager.FindAsync(model.SelectedProvider)
-            
+
             return RedirectToAction("VerifyCode", new { Provider = model.SelectedProvider, ReturnUrl = model.ReturnUrl, RememberMe = model.RememberMe });
         }
 
