@@ -176,6 +176,7 @@ namespace IdentityDDD.Data.EntityFramework.Repositories
 
             // Get the generic type of the set
             var type = updatedSet.First().GetType();
+            var keyType = type.GetProperty(relatedPropertyKeyName).PropertyType;
 
             var items = context.Set<T>()
                 .Include(relatedPropertyName)
@@ -186,11 +187,21 @@ namespace IdentityDDD.Data.EntityFramework.Repositories
             {
                 var values = CreateList(type);
 
+                //var qry = updatedSet
+                //        .Select(obj => (int)(obj
+                //        .GetType()
+                //        .GetProperty(relatedPropertyKeyName)
+                //        .GetValue(obj, null)));
+
                 var qry = updatedSet
-                        .Select(obj => (int)(obj
-                        .GetType()
-                        .GetProperty(relatedPropertyKeyName)
-                        .GetValue(obj, null)));
+                .Select(obj =>
+                    Convert.ChangeType
+                    (
+                        obj.GetType()                                          
+                        .GetProperty(relatedPropertyKeyName)                                          
+                        .GetValue(obj, null), keyType
+                    )
+                );
 
                 var relatedEntries = qry
                     .Select(val => context.Set(type).Find(val));

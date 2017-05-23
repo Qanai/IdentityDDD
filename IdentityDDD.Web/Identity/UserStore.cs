@@ -11,7 +11,8 @@ namespace IdentityDDD.Web.Identity
 {
     public class UserStore : IUserLoginStore<IdentityUser, Guid>, IUserClaimStore<IdentityUser, Guid>,
         IUserRoleStore<IdentityUser, Guid>, IUserPasswordStore<IdentityUser, Guid>,
-        IUserSecurityStampStore<IdentityUser, Guid>, IUserStore<IdentityUser, Guid>, IDisposable
+        IUserSecurityStampStore<IdentityUser, Guid>, IUserStore<IdentityUser, Guid>,
+        IUserEmailStore<IdentityUser, Guid>, IUserPhoneNumberStore<IdentityUser, Guid>, IDisposable
     {
         private readonly IUnitOfWork unitOfWork;
 
@@ -222,7 +223,8 @@ namespace IdentityDDD.Web.Identity
             }
 
             usr.Roles.Add(rl);
-            unitOfWork.UserRepository.Update(usr);
+            unitOfWork.UserRepository.UpdateRelated(u => u.UserId == usr.UserId, usr.Roles.ToArray(), "Roles", "RoleId");
+            //unitOfWork.UserRepository.Update(usr);
             return unitOfWork.CommitAsync();
         }
 
@@ -310,6 +312,83 @@ namespace IdentityDDD.Web.Identity
         {
             user.SecurityStamp = stamp;
             return Task.FromResult(0);
+        }
+        #endregion
+
+        #region IUserEmailStore
+        public Task<IdentityUser> FindByEmailAsync(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                throw new ArgumentException("Argument cannot be null, empty, or whitespace: email.");
+
+            var user = unitOfWork.UserRepository.GetSingle(u => u.Email == email);
+            return Task.FromResult<IdentityUser>(GetIdentityUser(user));
+        }
+
+        public Task<string> GetEmailAsync(IdentityUser user)
+        {
+            if (user == null)
+                throw new ArgumentNullException("user");
+            return Task.FromResult<string>(user.Email);
+        }
+
+        public Task<bool> GetEmailConfirmedAsync(IdentityUser user)
+        {
+            if (user == null)
+                throw new ArgumentNullException("user");
+            return Task.FromResult<bool>(false); //Task.FromResult<bool>(user.);
+        }
+
+        public Task SetEmailAsync(IdentityUser user, string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                throw new ArgumentException("Argument cannot be null, empty, or whitespace: email.");
+            if (user == null)
+                throw new ArgumentNullException("user");
+
+            user.Email = email;
+            return Task.FromResult(0);
+        }
+
+        public Task SetEmailConfirmedAsync(IdentityUser user, bool confirmed)
+        {
+            return Task.FromResult(1);
+        }
+        #endregion
+
+        #region IUserPhoneNumberStore
+        public Task<string> GetPhoneNumberAsync(IdentityUser user)
+        {
+            if (user == null)
+                throw new ArgumentNullException("user");
+
+            return Task.FromResult<string>(user.PhoneNumber);
+        }
+
+        public Task<bool> GetPhoneNumberConfirmedAsync(IdentityUser user)
+        {
+            if (user == null)
+                throw new ArgumentNullException("user");
+
+            return Task.FromResult<bool>(user.PhoneNumberConfirmed);
+        }
+
+        public Task SetPhoneNumberAsync(IdentityUser user, string phoneNumber)
+        {
+            if (user == null)
+                throw new ArgumentNullException("user");
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+                throw new ArgumentException("Argument cannot be null, empty, or whitespace: phoneNumber.");
+
+            return Task.Factory.StartNew(() => user.PhoneNumber = phoneNumber);
+        }
+
+        public Task SetPhoneNumberConfirmedAsync(IdentityUser user, bool confirmed)
+        {
+            if (user == null)
+                throw new ArgumentNullException("user");
+
+            return Task.Factory.StartNew(() => user.PhoneNumberConfirmed = confirmed);
         }
         #endregion
 

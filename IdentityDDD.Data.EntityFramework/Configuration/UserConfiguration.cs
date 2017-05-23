@@ -39,6 +39,12 @@ namespace IdentityDDD.Data.EntityFramework.Configuration
                 .HasMaxLength(256)
                 .IsRequired();
 
+            Property(x => x.Email)
+                .HasColumnName("PhoneNumber")
+                .HasColumnType("nvarchar")
+                .HasMaxLength(50)
+                .IsRequired();
+            
             HasMany(x => x.Roles)
                 .WithMany(x => x.Users)
                 .Map(x =>

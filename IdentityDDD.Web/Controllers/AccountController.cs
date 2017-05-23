@@ -11,6 +11,7 @@ using Microsoft.Owin.Security;
 using IdentityDDD.Web.Models;
 using IdentityDDD.Web.Identity;
 using System.Collections.Generic;
+using IdentityDDD.Domain;
 
 namespace IdentityDDD.Web.Controllers
 {
@@ -20,6 +21,7 @@ namespace IdentityDDD.Web.Controllers
         //private ApplicationSignInManager _signInManager;
         //private ApplicationUserManager _UserManager;
 
+        private readonly IUnitOfWork unitOfWork;
         private readonly UserManager<IdentityUser, Guid> userManager;
         private readonly RoleManager<IdentityRole, Guid> roleManager;
 
@@ -33,9 +35,11 @@ namespace IdentityDDD.Web.Controllers
         //    SignInManager = signInManager;
         //}
 
-        public AccountController(UserManager<IdentityUser, Guid> usrMngr,
+        public AccountController(IUnitOfWork uow, UserManager<IdentityUser, Guid> usrMngr,
             RoleManager<IdentityRole, Guid> rolMngr)
         {
+            unitOfWork = uow;
+
             userManager = usrMngr;
             roleManager = rolMngr;
 
@@ -56,21 +60,25 @@ namespace IdentityDDD.Web.Controllers
         private async Task SetInitialData()
         {
             string ar = "Admin";
-            if (!roleManager.RoleExists(ar))
+            List<string> roleNames = new List<string> { ar, "Editor", "Viewer" };
+            foreach (var item in roleNames)
             {
-                var adminRole = new IdentityRole(ar);
-                await roleManager.CreateAsync(adminRole);
+                if (!roleManager.RoleExists(item))
+                {
+                    var role = new IdentityRole(item);
+                    await roleManager.CreateAsync(role);
+                }
             }
 
-            var adminUser = userManager.Users.FirstOrDefault(u => userManager.IsInRole(u.Id, ar));
+            var adminUser = await userManager.FindByEmailAsync("eliyahushli@gmail.com");
             if (adminUser == null)
             {
                 string ad = "eliyahushli@gmail.com";
                 adminUser = new IdentityUser { UserName = ad, Email = ad };
-                var res = await userManager.CreateAsync(adminUser);
+                var res = await userManager.CreateAsync(adminUser, "lar23nov");
                 if (res.Succeeded)
                 {
-                    await userManager.AddToRoleAsync(adminUser.Id, ar);
+                    var a = await userManager.AddToRoleAsync(adminUser.Id, ar);
                 }
             }
         }
@@ -202,6 +210,7 @@ namespace IdentityDDD.Web.Controllers
         [AllowAnonymous]
         public ActionResult Register()
         {
+            ViewBag.Name = (roleManager.Roles == null) ? null : new SelectList(roleManager.Roles.ToList(), "Name", "Name");
             return View();
         }
 
@@ -229,7 +238,9 @@ namespace IdentityDDD.Web.Controllers
                     //    return RedirectToAction("Index", "Home");
 
                     await SignInAsync(user, isPersistent: false);
-                    RedirectToAction("Home", "Index");
+                    await userManager.AddToRoleAsync(user.Id, model.UserRoles);
+
+                    return RedirectToAction("Index", "Home");
                 }
                 else
                 {
@@ -239,6 +250,7 @@ namespace IdentityDDD.Web.Controllers
             }
 
             // If we got this far, something failed, redisplay form
+            ViewBag.Name = (roleManager.Roles == null) ? null : new SelectList(roleManager.Roles.ToList(), "Name", "Name");
             return View(model);
         }
 
